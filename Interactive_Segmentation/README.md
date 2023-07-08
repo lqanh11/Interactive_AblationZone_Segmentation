@@ -3,8 +3,7 @@ In this folder, we will provide instructions for interactive ablation zone segme
 ```.bash
 # This command runs the demo of interacitve ablation zone segmentation
 python demo.py
-# You can try the demo in CPU-only mode
-python demo.py --cpu
+# Please note that this demo have intergrated the nnUNet framework, therefore, it requires a workstation with GPU card.
 ```
 **Controls**:
 
