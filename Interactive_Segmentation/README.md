@@ -1,5 +1,6 @@
 # Interactive ablation zone segmentation
 In this folder, we will provide instructions for interactive ablation zone segmentation using the combination of the nnUNet framework and RITM:
+You can see a demo video from this [link](https://drive.google.com/file/d/12IVCkXf9-RO78YgvkLSQ0Bz3iR8ry7za/view) 
 ```.bash
 # This command runs the demo of interacitve ablation zone segmentation
 python demo.py
