@@ -1,5 +1,5 @@
 # Interactive Ablation Zone Segmentation
 
-Source codes for ablation zone segmentation using Semi-automatic CNN-based
+This repo contains the supported code and configuration files to reproduce our work on Ablation Zone segmentation .
 
 
