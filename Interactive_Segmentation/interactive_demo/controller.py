@@ -22,6 +22,7 @@ class InteractiveController:
         self._init_mask = None
 
         self.image = None
+        self.label = None
         self.upperThresh = upperThresh
         self.lowerThresh = lowerThresh
 
@@ -41,6 +42,9 @@ class InteractiveController:
         self.object_count = 0
         self.reset_last_object(update_image=False)
         self.update_image_callback(reset_canvas=True)
+    
+    def set_label(self, label):
+        self.label = label
 
     def set_mask(self, mask):
         if self.image.shape[:2] != mask.shape[:2]:
@@ -62,21 +66,47 @@ class InteractiveController:
             'predictor': self.predictor.get_states()
         })
 
-        # print(x,y)
-
         self.current_click_state = x,y,is_positive
         
 
         click = clicker.Click(is_positive=is_positive, coords=(y, x))
         self.clicker.add_click(click)
-        pred = self.predictor.get_prediction(self.clicker, prev_mask=self._init_mask)
-        if self._init_mask is not None and len(self.clicker) == 1:
+        mode = "Proposed"
+        lamda_value = 0.5
+        if mode == "RITM":
             pred = self.predictor.get_prediction(self.clicker, prev_mask=self._init_mask)
+            if self._init_mask is not None and len(self.clicker) == 1:
+                pred = self.predictor.get_prediction(self.clicker, prev_mask=self._init_mask)
 
-        # print(pred.shape)
+        elif mode == "Proposed":
+            print("ROI size: ", self.roi_size)
+            pred = self.predictor.get_prediction(self.clicker, prev_mask=self._init_mask)
+            
+            
+            zero_mask = np.zeros_like(pred)
+            zero_mask_3_chanel = 255 * zero_mask[:, :, np.newaxis].repeat(3, axis=2).astype(np.uint8)
+            cirle_image = cv2.circle(zero_mask_3_chanel, 
+                                (x,y), 
+                                self.roi_size, 
+                                (255,255,255),
+                                -1)
+            cirle_mask = (cirle_image[:,:,0]/255).astype(np.uint8)
+            revert_cirle_mask = (cirle_mask < 1).astype(np.uint8)
 
-        # itk_pred = sitk.GetImageFromArray(pred)
-        # sitk.WriteImage(itk_pred, 'D:/Project/Interactive_Segmentation/ritm_interactive_segmentation/pred_prob.nii.gz')
+            _init_mask_numpy = self._init_mask.cpu().numpy()[0, 0]
+
+            limit_range_mask_pred = np.multiply(pred, cirle_mask)
+            limit_range_mask_init = np.multiply(_init_mask_numpy, cirle_mask)
+
+            limit_range_mask_final = np.add(limit_range_mask_pred*lamda_value, 
+                                            limit_range_mask_init*(1 - lamda_value))
+
+            fixed_range_mask_final = np.multiply(_init_mask_numpy, revert_cirle_mask)
+
+            pred = np.add(fixed_range_mask_final, limit_range_mask_final)
+            ## Update init mask
+            self._init_mask = torch.tensor(pred, device=self.device).unsqueeze(0).unsqueeze(0)
+
 
         torch.cuda.empty_cache()
 
@@ -150,55 +180,11 @@ class InteractiveController:
 
     @property
     def current_object_prob(self):
-        mode = "RITM"
-        if mode == "RITM":
-            if self.probs_history:
-                current_prob_total, current_prob_additive = self.probs_history[-1]
-                return  np.maximum(current_prob_total, current_prob_additive)
-            else:
-                return None
-        elif mode == "Proposed":
-
-            if self.probs_history:
-                current_prob_total, current_prob_additive = self.probs_history[-1]
-
-
-                if len(self.probs_history) > 1:
-                    current_prob_total_previous, current_prob_additive_previous = self.probs_history[-2]
-
-                    current_prob_additive_roi = current_prob_additive_previous.copy()
-
-                    x,y,is_positive = self.current_click_state
-
-                    roi_pred = np.zeros_like(current_prob_additive)
-                    roi_pred[y-self.roi_size:y+self.roi_size,x-self.roi_size:x+self.roi_size] = current_prob_additive[y-self.roi_size:y+self.roi_size,x-self.roi_size:x+self.roi_size]
-
-                    # itk_roi_pred = sitk.GetImageFromArray(roi_pred)
-                    # sitk.WriteImage(itk_roi_pred, 'D:/Project/Interactive_Segmentation/ritm_interactive_segmentation/roi_pred.nii.gz')
-
-                    # itk_current_add = sitk.GetImageFromArray(current_prob_additive)
-                    # sitk.WriteImage(itk_current_add, 'D:/Project/Interactive_Segmentation/ritm_interactive_segmentation/curr_add_prob.nii.gz')
-                    # print(self.roi_size)
-                    if self.roi_size != 0:
-                        if is_positive:
-                            current_prob_additive_roi[y-self.roi_size:y+self.roi_size,x-self.roi_size:x+self.roi_size] = np.maximum(current_prob_additive_roi[y-self.roi_size:y+self.roi_size,x-self.roi_size:x+self.roi_size], roi_pred[y-self.roi_size:y+self.roi_size,x-self.roi_size:x+self.roi_size])
-                            
-                            self.probs_history[-1] = current_prob_total, current_prob_additive_roi
-                            
-                            return current_prob_additive_roi
-                        else:
-                            current_prob_additive_roi[y-self.roi_size:y+self.roi_size,x-self.roi_size:x+self.roi_size] = np.minimum(current_prob_additive_roi[y-self.roi_size:y+self.roi_size,x-self.roi_size:x+self.roi_size], roi_pred[y-self.roi_size:y+self.roi_size,x-self.roi_size:x+self.roi_size])
-                            
-                            self.probs_history[-1] = self.probs_history[-1][0], current_prob_additive_roi
-                            
-                            return current_prob_additive_roi
-                    else:
-                        return np.maximum(current_prob_total, current_prob_additive)
-                
-                else:
-                    return np.maximum(current_prob_total, current_prob_additive)
-            else:
-                return None
+        if self.probs_history:
+            current_prob_total, current_prob_additive = self.probs_history[-1]
+            return  np.maximum(current_prob_total, current_prob_additive)
+        else:
+            return None
 
     @property
     def is_incomplete_mask(self):
@@ -246,4 +232,5 @@ class InteractiveController:
 
     def update_roi_size(self, value):
         self.roi_size = value
+
 
