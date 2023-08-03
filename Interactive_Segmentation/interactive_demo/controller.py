@@ -83,6 +83,7 @@ class InteractiveController:
             pred = self.predictor.get_prediction(self.clicker, prev_mask=self._init_mask)
             
             
+            
             zero_mask = np.zeros_like(pred)
             zero_mask_3_chanel = 255 * zero_mask[:, :, np.newaxis].repeat(3, axis=2).astype(np.uint8)
             cirle_image = cv2.circle(zero_mask_3_chanel, 
@@ -92,8 +93,10 @@ class InteractiveController:
                                 -1)
             cirle_mask = (cirle_image[:,:,0]/255).astype(np.uint8)
             revert_cirle_mask = (cirle_mask < 1).astype(np.uint8)
-
-            _init_mask_numpy = self._init_mask.cpu().numpy()[0, 0]
+            if self._init_mask is not None:
+                _init_mask_numpy = self._init_mask.cpu().numpy()[0, 0]
+            else:
+                _init_mask_numpy = np.zeros_like(pred)
 
             limit_range_mask_pred = np.multiply(pred, cirle_mask)
             limit_range_mask_init = np.multiply(_init_mask_numpy, cirle_mask)
