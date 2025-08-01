@@ -7,6 +7,8 @@ Paper link:
 Demo link: 
 [[Video]](https://drive.google.com/file/d/12IVCkXf9-RO78YgvkLSQ0Bz3iR8ry7za/view)
 
+[<img src="Images/pipeline_of_the_proposed_approach.png" height="450" width="740"/>](Images/pipeline_of_the_proposed_approach.png)
+
 ## Introduction
 Ablation zone segmentation in contrast-enhanced computed tomography (CECT) images enables the quantitative assessment of treatment success in the ablation of liver lesions. However, fully automatic liver ablation zonesegmentation in CTimages still remains challenging, such as low accuracy and time-consuming manual refinement of the incorrect regions. In this study, we developed a semi-automatic technique to address the remaining drawbacksandimprovetheaccuracyof theliverablation zone segmentation in the CT images.
 
