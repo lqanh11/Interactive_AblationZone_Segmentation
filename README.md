@@ -17,7 +17,11 @@ Our approach uses a combination of a CNN-based automatic seg mentation method an
 
 ## How to run
 
-This repository includes the necessary code and configuration files to replicate our work on ablation zone segmentation.
+This repository contains the complete codebase and configuration files required to reproduce our work on ablation zone segmentation.
+
+Please refer to the instructions provided in the following folders:
+- `Automatic_Segmentation/` – for fully automatic segmentation methods
+- `Interactive_Segmentation/` – for interactive segmentation approaches
 
 ### System requirements
 The source code is intended to run on a Linux workstation equipped with a GPU card.
